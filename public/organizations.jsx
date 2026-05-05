@@ -556,25 +556,44 @@ async function loadActivity() {
       loadOrgCalendarsHistory(orgId, sessionId),
     ]);
 
-    // Normalize member events
-    const memberEvents = membersRes.map(e => ({
-      type:      "member",
-      action:    e.added ? "joined" : "left",
-      userId:    e.memberUserId,
-      timestamp: e.createdAt?.seconds
-        ? new Date(Number(e.createdAt.seconds) * 1000)
-        : new Date(),
-    }));
+    // Safely parse a protobuf Timestamp regardless of how the backend serializes it.
+// Handles: { seconds, nanos }, ISO string, or epoch number.
+function parseProtoTimestamp(ts) {
+  if (!ts) return new Date();
+  // gRPC-Web JSON: { seconds: "1234567890", nanos: 0 }
+  if (ts.seconds !== undefined) {
+  const phOffset = 8 * 60 * 60 * 1000;
+  return new Date(Number(ts.seconds) * 1000 - phOffset);
+}
+  // Some transcoders emit snake_case
+  if (ts.created_at) return parseProtoTimestamp(ts.created_at);
+  // ISO string fallback (e.g. "2024-05-01T10:00:00Z")
+  if (typeof ts === "string") {
+  const utcMs = new Date(ts).getTime();
+  return new Date(utcMs - 8 * 60 * 60 * 1000);
+}
+  // Raw epoch ms
+  if (typeof ts === "number") return new Date(ts);
+  return new Date();
+}
 
-    // Normalize calendar events
-    const calEvents = calsRes.map(e => ({
-      type:      "calendar",
-      action:    e.added ? "calendar added" : "calendar removed",
-      calendarId: e.calendarId,
-      timestamp: e.createdAt?.seconds
-        ? new Date(Number(e.createdAt.seconds) * 1000)
-        : new Date(),
-    }));
+const memberEvents = membersRes.map(e => {
+  console.log("raw createdAt:", e.createdAt ?? e.created_at);
+  console.log("parsed:", parseProtoTimestamp(e.createdAt ?? e.created_at).toString());
+  return {
+    type:      "member",
+    action:    e.added ? "joined" : "left",
+    userId:    e.memberUserId,
+    timestamp: parseProtoTimestamp(e.createdAt ?? e.created_at),
+  };
+});
+
+const calEvents = calsRes.map(e => ({
+  type:      "calendar",
+  action:    e.added ? "calendar added" : "calendar removed",
+  calendarId: e.calendarId,
+  timestamp: parseProtoTimestamp(e.createdAt ?? e.created_at),
+}));
 
     // Merge and sort newest first
     const merged = [...memberEvents, ...calEvents]
@@ -1021,7 +1040,8 @@ React.useEffect(() => {
                 <div style={{ fontSize:11, color:"var(--text3)", marginTop:1 }}>
                   {entry.timestamp.toLocaleString("en-PH", {
                     month:"short", day:"numeric", year:"numeric",
-                    hour:"2-digit", minute:"2-digit"
+                    hour:"2-digit", minute:"2-digit",
+                    timeZone: "Asia/Manila",
                   })}
                 </div>
               </div>
