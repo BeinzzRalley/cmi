@@ -287,6 +287,36 @@ async function fetchAllCalendars(sid, calPrefs, userId) {
     }));
 
     saveCalendarIds(userId, local);
+
+    // ── Tag each org-shared calendar with its org's id + name ──────────
+    // Fetch the user's org memberships, then map each org's shared cal IDs
+    // back to the calendar objects so CalendarPage can group by org.
+    try {
+      const ORG_SVC      = "/organizations.v2.OrganizationService";
+      const ORG_CAL_SVC  = "/organizations.v2.OrganizationCalendarService";
+      const userOrgsRes  = await apiCall(`${ORG_SVC}/GetUserOrganizations`, {}, sid);
+      const myOrgIds     = (userOrgsRes.organizationIds || []).map(String);
+
+      await Promise.all(myOrgIds.map(async (oid) => {
+        try {
+          const [orgRes, calsRes] = await Promise.all([
+            apiCall(`${ORG_SVC}/GetOrganization`, { organizationId: Number(oid) }, sid),
+            apiCall(`${ORG_CAL_SVC}/GetOrganizationCalendars`, { organizationId: Number(oid) }, sid),
+          ]);
+          const orgName   = orgRes.name || `Org ${oid}`;
+          const orgCalIds = new Set((calsRes.calendarIds || []).map(String));
+
+          calendars.forEach(c => {
+            if (c.isOrgShared && orgCalIds.has(strId(c.id))) {
+              c.orgId   = oid;
+              c.orgName = orgName;
+            }
+          });
+        } catch(e) { /* skip org if inaccessible */ }
+      }));
+    } catch(e) { /* org lookup is best-effort */ }
+    // ────────────────────────────────────────────────────────────────────
+
   } catch(e) {
     console.warn("Could not fetch calendars from server:", e.message);
 
@@ -1414,4 +1444,4 @@ function AboutContent() {
 
     </div>
   );
-} 
+}

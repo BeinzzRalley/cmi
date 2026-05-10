@@ -739,9 +739,6 @@ function ManageOrgModal({ ctx, orgId, org }) {
   // Labels state
   const [orgLabels,      setOrgLabels]      = React.useState([]); // { id, name, color }
   const [labelsLoading,  setLabelsLoading]  = React.useState(false);
-  const [newLabelName,   setNewLabelName]   = React.useState("");
-  const [newLabelColor,  setNewLabelColor]  = React.useState("#6c63ff");
-  const [labelSaving,    setLabelSaving]    = React.useState(false);
 
   const [activityLog,     setActivityLog]     = React.useState([]);
   const [activityLoading, setActivityLoading] = React.useState(false);
@@ -881,17 +878,6 @@ function ManageOrgModal({ ctx, orgId, org }) {
     finally { setLabelsLoading(false); }
   }
 
-  async function createLabel() {
-    if (!newLabelName.trim()) return;
-    setLabelSaving(true);
-    try {
-      const res = await orgLabelApi("CreateLabel", { organizationId: Number(orgId), name: newLabelName.trim(), color: newLabelColor }, sessionId);
-      setOrgLabels(prev => [...prev, { id: res.organizationLabelId, name: newLabelName.trim(), color: newLabelColor }]);
-      setNewLabelName("");
-      showToast("Label created!");
-    } catch(e) { showToast(e.message || "Failed to create label.", "error"); }
-    finally { setLabelSaving(false); }
-  }
 
   async function deleteLabel(labelId) {
     try {
@@ -993,7 +979,6 @@ function ManageOrgModal({ ctx, orgId, org }) {
 
         <div style={{ padding:"0 24px", borderBottom:"1px solid var(--border)", display:"flex", gap:4, background:"var(--surface2)", overflowX:"auto" }}>
           <button style={sBtn("calendars")}    onClick={() => setActiveSection("calendars")}>📅 Shared Calendars</button>
-          <button style={sBtn("labels")}       onClick={() => setActiveSection("labels")}>🏷 Labels</button>
           <button style={sBtn("join-prompt")}  onClick={() => setActiveSection("join-prompt")}>📋 Questionnaire</button>
           <button style={sBtn("join-requests")} onClick={() => setActiveSection("join-requests")}>
             📥 Join Requests{joinRequests.length > 0 ? ` (${joinRequests.length})` : ""}
@@ -1064,7 +1049,7 @@ function ManageOrgModal({ ctx, orgId, org }) {
                   {orgLabels.length === 0 ? (
                     <div style={{ textAlign:"center", padding:"24px 0", color:"var(--text3)" }}>
                       <div style={{ fontSize:28, marginBottom:8 }}>🏷</div>
-                      <div style={{ fontSize:13 }}>No labels yet. Create one below.</div>
+                      <div style={{ fontSize:13 }}>No labels yet.</div>
                     </div>
                   ) : (
                     <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:20 }}>
@@ -1082,31 +1067,6 @@ function ManageOrgModal({ ctx, orgId, org }) {
                     </div>
                   )}
 
-                  {/* Create new label */}
-                  <div style={{ padding:"14px 16px", borderRadius:12, background:"var(--surface2)", border:"1px solid var(--border)" }}>
-                    <div style={{ fontSize:12, fontWeight:700, letterSpacing:1.2, textTransform:"uppercase", color:"var(--text3)", marginBottom:12 }}>Create Label</div>
-                    <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
-                      <input
-                        className="form-input"
-                        placeholder="Label name (e.g. Urgent, Finals)"
-                        value={newLabelName}
-                        onChange={e => setNewLabelName(e.target.value)}
-                        style={{ flex:1, minWidth:160 }}
-                      />
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <label style={{ fontSize:13, color:"var(--text2)" }}>Color:</label>
-                        <input
-                          type="color"
-                          value={newLabelColor}
-                          onChange={e => setNewLabelColor(e.target.value)}
-                          style={{ width:36, height:32, borderRadius:6, border:"1px solid var(--border)", cursor:"pointer", padding:2 }}
-                        />
-                      </div>
-                      <button className="btn btn-primary btn-sm" onClick={createLabel} disabled={labelSaving || !newLabelName.trim()}>
-                        {labelSaving ? "Saving…" : "+ Add Label"}
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
