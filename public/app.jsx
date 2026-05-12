@@ -453,11 +453,16 @@ async function fetchAllCalendars(sid, calPrefs, userId) {
         const prefs   = calPrefs[id] || {};
         const color   = prefs.color || pickColor(id);
 
+        // Auto-label org-shared calendars as "organization"; fall back to saved pref or "none"
+        const autoLabel = !isOwner ? "organization" : (prefs.label || "none");
+        // If user has explicitly overridden the label for an org calendar, honour it
+        const label = prefs.label !== undefined ? prefs.label : autoLabel;
+
         // Track owned IDs in localStorage
         if (isOwner && !local.owned.includes(id)) {
           local.owned.push(id);
         }
-
+        console.log(calRes);
         calendars.push({
           id,
           name:        calRes.name,
@@ -465,6 +470,8 @@ async function fetchAllCalendars(sid, calPrefs, userId) {
           isOwner,
           codes:       [],
           color,
+          label,
+          updated_at: calRes.updatedAt,
           type:        prefs.type || (isOwner ? "personal" : "org-shared"),
           isOrgShared: !isOwner,
         });
@@ -520,9 +527,12 @@ async function fetchAllCalendars(sid, calPrefs, userId) {
         const isOwner = strId(calRes.ownerUserId) === strId(userId);
         const prefs   = calPrefs[id] || {};
         const color   = prefs.color || pickColor(id);
+        const autoLabel = !isOwner ? "organization" : (prefs.label || "none");
+        const label = prefs.label !== undefined ? prefs.label : autoLabel;
         calendars.push({
           id, name: calRes.name, description: calRes.description || "",
-          isOwner, codes: [], color,
+          isOwner, codes: [], color, label,
+          updated_at: calRes.updatedAt,
           type: prefs.type || (isOwner ? "personal" : "org-shared"),
           isOrgShared: !isOwner,
         });
