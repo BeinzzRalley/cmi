@@ -797,6 +797,7 @@ function ManageOrgModal({ ctx, orgId, org, initialSection }) {
   const [members,        setMembers]        = React.useState([]);
   const [membersLoading, setMembersLoading] = React.useState(false);
   const [confirmDlg,     setConfirmDlg]     = React.useState(null);
+  const [showAdminDash,  setShowAdminDash]  = React.useState(false);
 
   const [joinRequests,          setJoinRequests]          = React.useState([]);
   const [joinRequestsLoading,   setJoinRequestsLoading]   = React.useState(false);
@@ -1025,7 +1026,17 @@ function ManageOrgModal({ ctx, orgId, org, initialSection }) {
 
   const typeCol = GROUP_TYPE_COLORS[org.type] || "var(--accent)";
 
+{showAdminDash && (
+  <AdminDashboardModal
+    ctx={ctx}
+    orgId={orgId}
+    org={org}
+    onClose={() => setShowAdminDash(false)}
+  />
+)}
+
   return (
+    <>
     <div className="modal-overlay" onClick={closeModal}>
       {confirmDlg && <ConfirmDialog {...confirmDlg} onClose={() => setConfirmDlg(null)} />}
       <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
@@ -1051,6 +1062,7 @@ function ManageOrgModal({ ctx, orgId, org, initialSection }) {
           </button>
           <button style={sBtn("activity")}     onClick={() => setActiveSection("activity")}>📋 Activity</button>
           <button style={sBtn("settings")}     onClick={() => setActiveSection("settings")}>⚙️ Settings</button>
+          <button style={{ ...sBtn("admin"), marginLeft:"auto", color:"var(--accent)", fontWeight:700 }} onClick={() => setShowAdminDash(true)}>🛡 Admin Dashboard</button>
         </div>
 
         <div className="modal-body">
@@ -1464,6 +1476,16 @@ function ManageOrgModal({ ctx, orgId, org, initialSection }) {
         </div>
       </div>
     </div>
+
+    {showAdminDash && (
+      <AdminDashboardModal
+        ctx={ctx}
+        orgId={orgId}
+        org={org}
+        onClose={() => setShowAdminDash(false)}
+      />
+    )}
+    </>
   );
 }
 
